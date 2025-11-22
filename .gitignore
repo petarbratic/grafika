@@ -1,0 +1,22 @@
+# Visual Studio
+.vs/
+*.user
+*.suo
+
+# Build output
+x64/
+Debug/
+Release/
+*.log
+
+# VS projekat – user-specific
+*.VC.db
+*.opendb
+
+# NuGet packages
+packages/
+
+# Ostalo
+*.obj
+*.pdb
+*.ilk

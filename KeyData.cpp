@@ -1,7 +1,7 @@
 ﻿#include "KeyData.h"
 #include <GLFW/glfw3.h>
 
-// Desne dirke (isti raspored kao u tvom kodu)
+// Desne dirke
 KeyNote notes[] = {
     { GLFW_KEY_Z, "semplHarmonika/c.wav",  nullptr, false }, // C
     { GLFW_KEY_X, "semplHarmonika/d.wav",  nullptr, false }, // D
@@ -21,7 +21,7 @@ KeyNote notes[] = {
 
 const int notesCount = sizeof(notes) / sizeof(notes[0]);
 
-// Bas dugmići (isti raspored kao kod tebe)
+// Bas dugmad
 BassButton bassButtons[] = {
     { GLFW_KEY_U, "semplHarmonika/Cbas.wav", nullptr, false, -0.4f, 0.4f,   0.04f },
     { GLFW_KEY_7, "semplHarmonika/Cdur.wav", nullptr, false, -0.32f, 0.465f, 0.04f },

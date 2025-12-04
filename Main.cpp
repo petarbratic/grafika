@@ -523,6 +523,7 @@ int main()
             ndcX + hw, ndcY + hh, 1.0f, 0.0f   // gore desno
         };
 
+        /// ovo popraviti - resenja u vezbi 3
         glBindVertexArray(VAOcursor);
         glBindBuffer(GL_ARRAY_BUFFER, VBOcursor);
         glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(cursorVerticesUpdated), cursorVerticesUpdated);

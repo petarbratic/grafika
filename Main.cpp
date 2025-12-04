@@ -154,7 +154,7 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Prozor 900x900 (da krugovi budu krugovi, ne elipse)
+    // Prozor 900x900 (za sad nije full screen)
     GLFWwindow* window = glfwCreateWindow(900, 900, "Vezba 2", NULL, NULL);
     if (window == NULL) return endProgram("Prozor nije uspeo da se kreira.");
     glfwMakeContextCurrent(window);
@@ -164,7 +164,12 @@ int main()
     // Inicijalizacija GLEW
     if (glewInit() != GLEW_OK) return endProgram("GLEW nije uspeo da se inicijalizuje.");
 
+    // Blending za providne teksture (ime.png)
+    glEnable(GL_BLEND);
+    glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
     unsigned int basicShader = createShader("basic.vert", "basic.frag");
+    unsigned int rectShader = createShader("rect.vert", "rect.frag");
 
     // ----------------------------------------------------------------------------------
     // Verteksi za desne dirke
@@ -344,8 +349,37 @@ int main()
     glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // ----- PLOČICA SA IMENOM (tekstura ime.png) -----
+    float imeVertices[] = {
+        //   x,      y,       u,   v
+         0.55f, -0.80f,    0.0f, 0.0f,  // gore levo
+         0.55f, -0.95f,    0.0f, 1.0f,  // dole levo
+         0.95f, -0.95f,    1.0f, 1.0f,  // dole desno
+         0.95f, -0.80f,    1.0f, 0.0f   // gore desno
+    };
+
+
+    unsigned int VAOime, VBOime;
+    glGenVertexArrays(1, &VAOime);
+    glGenBuffers(1, &VBOime);
+
+    glBindVertexArray(VAOime);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOime);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(imeVertices), imeVertices, GL_STATIC_DRAW);
+
+    // pozicija (location = 0)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // tex koordinate (location = 1)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     // vrati se na VAO dirki
     glBindVertexArray(VAO);
+
+    // Učitavanje teksture sa imenom
+    unsigned int imeTex = loadTexture("media/ime.png");
 
     // ----------------- MAIN LOOP -----------------
     while (!glfwWindowShouldClose(window))
@@ -360,13 +394,10 @@ int main()
 
         previousTime = currentTime;
 
-
-
         glClear(GL_COLOR_BUFFER_BIT);
 
-        glUseProgram(basicShader);
-
         // --- DESNE DIRKE ---
+        glUseProgram(basicShader);
         glBindVertexArray(VAO);
 
         int verticesPerKey = 4;
@@ -438,6 +469,16 @@ int main()
         glDrawArrays(GL_LINE_LOOP, 0, 4);
 
         glEnableVertexAttribArray(1);
+
+        // --- PLOČICA SA IMENOM (tekstura ime.png) ---
+        glUseProgram(rectShader);
+        glBindVertexArray(VAOime);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, imeTex);
+        glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
         glfwSwapBuffers(window);
         glfwPollEvents();

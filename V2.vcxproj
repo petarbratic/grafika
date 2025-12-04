@@ -141,8 +141,11 @@
     <None Include="basic.frag" />
     <None Include="basic.vert" />
     <None Include="packages.config" />
+    <None Include="rect.frag" />
+    <None Include="rect.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="stb_image.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>
   <ItemGroup>

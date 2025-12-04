@@ -1,18 +1,23 @@
-#include "Util.h";
+#define _CRT_SECURE_NO_WARNINGS
+
+#include "Util.h"
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
 
-#define _CRT_SECURE_NO_WARNINGS
 #include <fstream>
 #include <sstream>
 #include <iostream>
+
+// dodaj ovo:
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 // Autor: Nedeljko Tesanovic
 // Opis: pomocne funkcije za ucitavanje sejdera
 unsigned int compileShader(GLenum type, const char* source)
 {
-    //Uzima kod u fajlu na putanji "source", kompajlira ga i vraca sejder tipa "type"
-    //Citanje izvornog koda iz fajla
+    // Uzima kod u fajlu na putanji "source", kompajlira ga i vraca sejder tipa "type"
+    // Citanje izvornog koda iz fajla
     std::string content = "";
     std::ifstream file(source);
     std::stringstream ss;
@@ -27,63 +32,115 @@ unsigned int compileShader(GLenum type, const char* source)
         std::cout << "Greska pri citanju fajla sa putanje \"" << source << "\"!" << std::endl;
     }
     std::string temp = ss.str();
-    const char* sourceCode = temp.c_str(); //Izvorni kod sejdera koji citamo iz fajla na putanji "source"
+    const char* sourceCode = temp.c_str(); // Izvorni kod sejdera koji citamo iz fajla na putanji "source"
 
-    int shader = glCreateShader(type); //Napravimo prazan sejder odredjenog tipa (vertex ili fragment)
+    int shader = glCreateShader(type); // Napravimo prazan sejder odredjenog tipa (vertex ili fragment)
 
-    int success; //Da li je kompajliranje bilo uspjesno (1 - da)
-    char infoLog[512]; //Poruka o gresci (Objasnjava sta je puklo unutar sejdera)
-    glShaderSource(shader, 1, &sourceCode, NULL); //Postavi izvorni kod sejdera
-    glCompileShader(shader); //Kompajliraj sejder
+    int success; // Da li je kompajliranje bilo uspjesno (1 - da)
+    char infoLog[512]; // Poruka o gresci (Objasnjava sta je puklo unutar sejdera)
+    glShaderSource(shader, 1, &sourceCode, NULL); // Postavi izvorni kod sejdera
+    glCompileShader(shader); // Kompajliraj sejder
 
-    glGetShaderiv(shader, GL_COMPILE_STATUS, &success); //Provjeri da li je sejder uspjesno kompajliran
+    glGetShaderiv(shader, GL_COMPILE_STATUS, &success); // Provjeri da li je sejder uspjesno kompajliran
     if (success == GL_FALSE)
     {
-        glGetShaderInfoLog(shader, 512, NULL, infoLog); //Pribavi poruku o gresci
+        glGetShaderInfoLog(shader, 512, NULL, infoLog); // Pribavi poruku o gresci
         if (type == GL_VERTEX_SHADER)
             printf("VERTEX");
         else if (type == GL_FRAGMENT_SHADER)
             printf("FRAGMENT");
         printf(" sejder ima gresku! Greska: \n");
-        printf(infoLog);
+        printf("%s\n", infoLog);
     }
     return shader;
 }
+
 unsigned int createShader(const char* vsSource, const char* fsSource)
 {
-    //Pravi objedinjeni sejder program koji se sastoji od Vertex sejdera ciji je kod na putanji vsSource
+    // Pravi objedinjeni sejder program koji se sastoji od Vertex sejdera ciji je kod na putanji vsSource
 
-    unsigned int program; //Objedinjeni sejder
-    unsigned int vertexShader; //Verteks sejder (za prostorne podatke)
-    unsigned int fragmentShader; //Fragment sejder (za boje, teksture itd)
+    unsigned int program; // Objedinjeni sejder
+    unsigned int vertexShader; // Verteks sejder (za prostorne podatke)
+    unsigned int fragmentShader; // Fragment sejder (za boje, teksture itd)
 
-    program = glCreateProgram(); //Napravi prazan objedinjeni sejder program
+    program = glCreateProgram(); // Napravi prazan objedinjeni sejder program
 
-    vertexShader = compileShader(GL_VERTEX_SHADER, vsSource); //Napravi i kompajliraj vertex sejder
-    fragmentShader = compileShader(GL_FRAGMENT_SHADER, fsSource); //Napravi i kompajliraj fragment sejder
+    vertexShader = compileShader(GL_VERTEX_SHADER, vsSource);   // Napravi i kompajliraj vertex sejder
+    fragmentShader = compileShader(GL_FRAGMENT_SHADER, fsSource); // Napravi i kompajliraj fragment sejder
 
-    //Zakaci verteks i fragment sejdere za objedinjeni program
+    // Zakaci verteks i fragment sejdere za objedinjeni program
     glAttachShader(program, vertexShader);
     glAttachShader(program, fragmentShader);
 
-    glLinkProgram(program); //Povezi ih u jedan objedinjeni sejder program
-    glValidateProgram(program); //Izvrsi provjeru novopecenog programa
+    glLinkProgram(program);    // Povezi ih u jedan objedinjeni sejder program
+    glValidateProgram(program); // Izvrsi provjeru novopecenog programa
 
     int success;
     char infoLog[512];
-    glGetProgramiv(program, GL_VALIDATE_STATUS, &success); //Slicno kao za sejdere
+    glGetProgramiv(program, GL_VALIDATE_STATUS, &success); // Slicno kao za sejdere
     if (success == GL_FALSE)
     {
-        glGetShaderInfoLog(program, 512, NULL, infoLog);
+        glGetProgramInfoLog(program, 512, NULL, infoLog);
         std::cout << "Objedinjeni sejder ima gresku! Greska: \n";
         std::cout << infoLog << std::endl;
     }
 
-    //Posto su kodovi sejdera u objedinjenom sejderu, oni pojedinacni programi nam ne trebaju, pa ih brisemo zarad ustede na memoriji
+    // Posto su kodovi sejdera u objedinjenom sejderu, oni pojedinacni programi nam ne trebaju, pa ih brisemo
     glDetachShader(program, vertexShader);
     glDeleteShader(vertexShader);
     glDetachShader(program, fragmentShader);
     glDeleteShader(fragmentShader);
 
     return program;
+}
+
+// ---------------------- NOVO: ucitavanje teksture ----------------------
+// Ovo je genericki loader kao sa vezbi (twolegs, grass, itd.)
+unsigned int loadTexture(const char* path)
+{
+    int width, height, nrChannels;
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+
+    if (!data)
+    {
+        std::cout << "Greska pri ucitavanju teksture: " << path << std::endl;
+        return 0;
+    }
+
+    GLenum format = GL_RGB;
+    if (nrChannels == 1)
+        format = GL_RED;
+    else if (nrChannels == 3)
+        format = GL_RGB;
+    else if (nrChannels == 4)
+        format = GL_RGBA;
+
+    unsigned int textureID;
+    glGenTextures(1, &textureID);
+    glBindTexture(GL_TEXTURE_2D, textureID);
+
+    glTexImage2D(GL_TEXTURE_2D,
+        0,
+        format,
+        width,
+        height,
+        0,
+        format,
+        GL_UNSIGNED_BYTE,
+        data);
+
+    glGenerateMipmap(GL_TEXTURE_2D);
+
+    // Wrap i filter parametri (klasicno)
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+    stbi_image_free(data);
+
+    std::cout << "Ucitana tekstura: " << path << " (" << width << "x" << height
+        << ", kanala: " << nrChannels << ")" << std::endl;
+
+    return textureID;
 }

@@ -22,10 +22,19 @@
     <None Include="basic.vert">
       <Filter>Source Files</Filter>
     </None>
+    <None Include="rect.vert">
+      <Filter>Source Files</Filter>
+    </None>
+    <None Include="rect.frag">
+      <Filter>Source Files</Filter>
+    </None>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="Util.h">
       <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="stb_image.h">
+      <Filter>Source Files</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

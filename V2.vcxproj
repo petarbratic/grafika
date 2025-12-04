@@ -145,10 +145,18 @@
     <None Include="rect.vert" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="Audio.h" />
+    <ClInclude Include="Graphics.h" />
+    <ClInclude Include="Input.h" />
+    <ClInclude Include="KeyData.h" />
     <ClInclude Include="stb_image.h" />
     <ClInclude Include="Util.h" />
   </ItemGroup>
   <ItemGroup>
+    <ClCompile Include="Audio.cpp" />
+    <ClCompile Include="Graphics.cpp" />
+    <ClCompile Include="Input.cpp" />
+    <ClCompile Include="KeyData.cpp" />
     <ClCompile Include="Main.cpp" />
     <ClCompile Include="Util.cpp" />
   </ItemGroup>

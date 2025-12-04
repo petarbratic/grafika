@@ -2,6 +2,7 @@
 
 #include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 
 namespace Graphics {
 
@@ -14,5 +15,11 @@ namespace Graphics {
 
     // Čišćenje resursa
     void shutdown();
+
+    // pomeranje leve strane (basa)
+    void moveLeftSide(float dx);
+
+    // da kažemo grafici da li neko drži dirku / bas
+    void setBellowsActive(bool active);
 
 }

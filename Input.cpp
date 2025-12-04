@@ -1,6 +1,8 @@
-#include "Input.h"
+﻿#include <GL/glew.h>
 #include <GLFW/glfw3.h>
+#include <iostream>
 #include "Audio.h"
+#include "Graphics.h"
 
 namespace {
 
@@ -10,7 +12,20 @@ namespace {
             glfwSetWindowShouldClose(window, true);
             return;
         }
+        // Pomeranje leve strane (bas sekcije) strelicama
+        if ((key == GLFW_KEY_LEFT || key == GLFW_KEY_RIGHT) &&
+            (action == GLFW_PRESS || action == GLFW_REPEAT)) {
 
+            float step = 0.02f; // koliko po pritisku
+            if (key == GLFW_KEY_LEFT) {
+                Graphics::moveLeftSide(-step);
+            }
+            else {
+                Graphics::moveLeftSide(step);
+            }
+
+            return; // ne prosleđujemo ovo Audio modu
+        }
         // Sve ostalo prosledi audiju
         Audio::handleKey(key, action);
     }

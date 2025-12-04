@@ -59,6 +59,24 @@ static const float BELLOW_SPEED = 0.2f; // brzina meha (ti menjaš kasnije)
 static const float MAX_SHIFT_RIGHT = 0.40f;   // desno (napolje) – može veće
 static const float MAX_SHIFT_LEFT = 0.0f;  // levo (unutra) – manje, po tvojoj želji
 
+// Meh (bellows)
+static unsigned int VAObellows = 0;
+static unsigned int VBObellows = 0;
+static unsigned int bellowsTex = 0;
+
+
+// Meh – parametri
+static const float BELLOWS_MIN_WIDTH = 0.05f;  // minimalna širina (skupljen)
+static const float BELLOWS_MAX_WIDTH = 0.50f;  // maksimalna širina (razvučen)
+
+// vertikalno – visina meha
+static const float BELLOWS_BOTTOM = 0.0f;
+static const float BELLOWS_TOP = 0.8f;
+
+// sidrenje leve ivice (na desnu ivicu bas-kućišta kad je g_leftOffsetX = 0)
+static const float BELLOWS_LEFT_BASE = -0.5f;  // ovo slobodno šteluj po ukusu
+
+
 // -------------------------------------------------
 // Pomoćne funkcije za inicijalizaciju geometrije
 // -------------------------------------------------
@@ -250,6 +268,59 @@ static void initCursorGeometry() {
     glEnableVertexAttribArray(1);
 }
 
+static void initBellowsGeometry()
+{
+    // za početak samo rezervišemo prostor (4 verteksa, po 4 float-a: x,y,u,v)
+    float dummy[16] = { 0.0f };
+
+    glGenVertexArrays(1, &VAObellows);
+    glGenBuffers(1, &VBObellows);
+
+    glBindVertexArray(VAObellows);
+    glBindBuffer(GL_ARRAY_BUFFER, VBObellows);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(dummy), dummy, GL_DYNAMIC_DRAW);
+
+    // pozicija (x, y)
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    // tex koordinate (u, v)
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+}
+
+static void updateBellowsGeometry()
+{
+    // 1) Leva ivica meha JE STACIONARNA u NDC prostoru
+    //    (podesi BELLOWS_LEFT_BASE da ti nalegne gde treba)
+    float leftX = BELLOWS_LEFT_BASE;
+
+    // 2) Izračunaj "otvorenost" meha iz g_leftOffsetX
+    //    pretpostavljam da već imaš MAX_SHIFT_LEFT i MAX_SHIFT_RIGHT gore u fajlu
+    float t = (g_leftOffsetX - MAX_SHIFT_LEFT) / (MAX_SHIFT_RIGHT - MAX_SHIFT_LEFT);
+    if (t < 0.0f) t = 0.0f;
+    if (t > 1.0f) t = 1.0f;
+
+    // 3) Širina meha – od skupljenog do maksimalno raširenog
+    float width = BELLOWS_MIN_WIDTH + t * (BELLOWS_MAX_WIDTH - BELLOWS_MIN_WIDTH);
+
+    // 4) Desna ivica ide levo/desno – leva je fiksna
+    float rightX = leftX + width;
+
+    // 5) Verteksi (x, y, u, v)
+    float bellowsVertices[] = {
+        //   x,      y,               u,   v
+        leftX,  BELLOWS_TOP,       0.0f, 1.0f,   // gore levo
+        leftX,  BELLOWS_BOTTOM,    0.0f, 0.0f,   // dole levo
+        rightX, BELLOWS_BOTTOM,    1.0f, 0.0f,   // dole desno
+        rightX, BELLOWS_TOP,       1.0f, 1.0f    // gore desno
+    };
+
+    glBindVertexArray(VAObellows);
+    glBindBuffer(GL_ARRAY_BUFFER, VBObellows);
+    glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(bellowsVertices), bellowsVertices);
+}
+
 // --------------------------------------
 // updateBassBuffers – koristi g_leftOffsetX
 // --------------------------------------
@@ -324,9 +395,11 @@ bool Graphics::init() {
     initBassGeometry();
     initImeGeometry();
     initCursorGeometry();
+    initBellowsGeometry();
 
     imeTex = loadTexture("media/ime.png");
     cursorTex = loadTexture("media/cursor.png");
+    bellowsTex = loadTexture("media/bellows.png");
 
     return true;
 }
@@ -399,6 +472,21 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
     // ---------------- BAS SEKCIJA ----------------
     // pre crtanja osveži pozicije basova prema g_leftOffsetX
     updateBassBuffers();
+
+    // ---------------- MEH (TEKSTURA) ----------------
+    updateBellowsGeometry();
+
+    glUseProgram(rectShader);
+    glBindVertexArray(VAObellows);
+
+    glActiveTexture(GL_TEXTURE0);
+    glBindTexture(GL_TEXTURE_2D, bellowsTex);
+    glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
+
+    glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+    glBindTexture(GL_TEXTURE_2D, 0);
+    glUseProgram(basicShader);
+
 
     // pozadina
     glBindVertexArray(VAObassFrame);
@@ -478,6 +566,11 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
 }
 
 void Graphics::shutdown() {
+
+    glDeleteVertexArrays(1, &VAObellows);
+    glDeleteBuffers(1, &VBObellows);
+   
+
     glDeleteVertexArrays(1, &VAOkeys);
     glDeleteBuffers(1, &VBOkeys);
 
@@ -497,6 +590,7 @@ void Graphics::shutdown() {
     glDeleteProgram(rectShader);
 
     glDeleteTextures(1, &imeTex);
+    glDeleteTextures(1, &bellowsTex);
     glDeleteTextures(1, &cursorTex);
 }
 

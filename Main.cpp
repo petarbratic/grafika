@@ -29,7 +29,16 @@ int main() {
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    GLFWwindow* window = glfwCreateWindow(900, 900, "Harmonika", nullptr, nullptr);
+    GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+    const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+    GLFWwindow* window = glfwCreateWindow(
+        mode->width,
+        mode->height,
+        "Harmonika",
+        monitor,   // fullscreen monitor
+        NULL
+    );
     if (!window) {
         Audio::shutdown();
         return endProgram("Prozor nije uspeo da se kreira.");

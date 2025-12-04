@@ -54,10 +54,10 @@ static float g_leftOffsetX = 0.0f;
 
 // Meh – da li radi i u kom smeru
 static bool  g_bellowsActive = false;
-static float g_bellowDir = 1.0f;   // +1 desno, -1 levo
-static const float BELLOW_SPEED = 0.2f; // brzina meha (ti menjaš kasnije)
-static const float MAX_SHIFT_RIGHT = 0.40f;   // desno (napolje) – može veće
-static const float MAX_SHIFT_LEFT = 0.0f;  // levo (unutra) – manje, po tvojoj želji
+static float g_bellowDir = 1.0f;         // +1 desno, -1 levo
+static const float BELLOW_SPEED = 0.2f;  // brzina meha
+static const float MAX_SHIFT_RIGHT = 0.40f; // desno (napolje)
+static const float MAX_SHIFT_LEFT = 0.0f;  // levo (unutra)
 
 // Meh (bellows)
 static unsigned int VAObellows = 0;
@@ -74,7 +74,7 @@ static const float BELLOWS_BOTTOM = 0.0f;
 static const float BELLOWS_TOP = 0.8f;
 
 // sidrenje leve ivice (na desnu ivicu bas-kućišta kad je g_leftOffsetX = 0)
-static const float BELLOWS_LEFT_BASE = -0.5f;  // ovo slobodno šteluj po ukusu
+static const float BELLOWS_LEFT_BASE = -0.5f;  // po ukusu
 
 
 // -------------------------------------------------
@@ -292,11 +292,9 @@ static void initBellowsGeometry()
 static void updateBellowsGeometry()
 {
     // 1) Leva ivica meha JE STACIONARNA u NDC prostoru
-    //    (podesi BELLOWS_LEFT_BASE da ti nalegne gde treba)
     float leftX = BELLOWS_LEFT_BASE;
 
     // 2) Izračunaj "otvorenost" meha iz g_leftOffsetX
-    //    pretpostavljam da već imaš MAX_SHIFT_LEFT i MAX_SHIFT_RIGHT gore u fajlu
     float t = (g_leftOffsetX - MAX_SHIFT_LEFT) / (MAX_SHIFT_RIGHT - MAX_SHIFT_LEFT);
     if (t < 0.0f) t = 0.0f;
     if (t > 1.0f) t = 1.0f;
@@ -391,6 +389,12 @@ bool Graphics::init() {
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     glClearColor(0.5f, 0.6f, 1.0f, 1.0f);
 
+    // podrazumevni alpha za teksturisani šejder
+    glUseProgram(rectShader);
+    GLint alphaLoc = glGetUniformLocation(rectShader, "uAlpha");
+    glUniform1f(alphaLoc, 1.0f);
+    glUseProgram(0);
+
     initKeysGeometry();
     initBassGeometry();
     initImeGeometry();
@@ -413,9 +417,7 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
     }
     previousTime = currentTime;
 
-   
     glClear(GL_COLOR_BUFFER_BIT);
-
 
     // Automatsko pomeranje meha dok su dirke/basovi pritisnuti
     if (g_bellowsActive) {
@@ -432,7 +434,6 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
             g_bellowDir = 1.0f;
         }
     }
-
 
     // ---------------- DESNE DIRKE ----------------
     glUseProgram(basicShader);
@@ -482,13 +483,14 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, bellowsTex);
     glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
+    // meh – pun alpha
+    glUniform1f(glGetUniformLocation(rectShader, "uAlpha"), 1.0f);
 
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
     glBindTexture(GL_TEXTURE_2D, 0);
     glUseProgram(basicShader);
 
-
-    // pozadina
+    // pozadina bas okvira
     glBindVertexArray(VAObassFrame);
     glDisableVertexAttribArray(1);
 
@@ -530,6 +532,8 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, imeTex);
     glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
+    // ime – poluprovidno
+    glUniform1f(glGetUniformLocation(rectShader, "uAlpha"), 0.5f);
 
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 
@@ -561,6 +565,8 @@ void Graphics::renderFrame(GLFWwindow* window, double& previousTime) {
     glActiveTexture(GL_TEXTURE0);
     glBindTexture(GL_TEXTURE_2D, cursorTex);
     glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
+    // kursor – pun alpha
+    glUniform1f(glGetUniformLocation(rectShader, "uAlpha"), 1.0f);
 
     glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
 }
@@ -569,7 +575,6 @@ void Graphics::shutdown() {
 
     glDeleteVertexArrays(1, &VAObellows);
     glDeleteBuffers(1, &VBObellows);
-   
 
     glDeleteVertexArrays(1, &VAOkeys);
     glDeleteBuffers(1, &VBOkeys);

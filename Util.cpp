@@ -98,8 +98,13 @@ unsigned int createShader(const char* vsSource, const char* fsSource)
 // Ovo je genericki loader kao sa vezbi (twolegs, grass, itd.)
 unsigned int loadTexture(const char* path)
 {
-    int width, height, nrChannels;
-    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, 0);
+    int width = 0, height = 0, nrChannels = 0;
+
+    // opciono: ako želiš flip po Y osi (da slika ne bude naopako)
+    // stbi_set_flip_vertically_on_load(true);
+
+    // UVEK tražimo 4 kanala (RGBA)
+    unsigned char* data = stbi_load(path, &width, &height, &nrChannels, STBI_rgb_alpha);
 
     if (!data)
     {
@@ -107,31 +112,31 @@ unsigned int loadTexture(const char* path)
         return 0;
     }
 
-    GLenum format = GL_RGB;
-    if (nrChannels == 1)
-        format = GL_RED;
-    else if (nrChannels == 3)
-        format = GL_RGB;
-    else if (nrChannels == 4)
-        format = GL_RGBA;
+    std::cout << "Ucitana tekstura: " << path
+        << " (" << width << "x" << height
+        << ", kanala: " << nrChannels << ", force RGBA)"
+        << std::endl;
 
-    unsigned int textureID;
+    unsigned int textureID = 0;
     glGenTextures(1, &textureID);
     glBindTexture(GL_TEXTURE_2D, textureID);
 
-    glTexImage2D(GL_TEXTURE_2D,
+    // SVE je GL_RGBA (i internal i external format)
+    glTexImage2D(
+        GL_TEXTURE_2D,
         0,
-        format,
+        GL_RGBA,             // internal format
         width,
         height,
         0,
-        format,
+        GL_RGBA,             // external format
         GL_UNSIGNED_BYTE,
-        data);
+        data
+    );
 
     glGenerateMipmap(GL_TEXTURE_2D);
 
-    // Wrap i filter parametri (klasicno)
+    // Wrap i filter parametri
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
@@ -139,8 +144,6 @@ unsigned int loadTexture(const char* path)
 
     stbi_image_free(data);
 
-    std::cout << "Ucitana tekstura: " << path << " (" << width << "x" << height
-        << ", kanala: " << nrChannels << ")" << std::endl;
-
     return textureID;
 }
+

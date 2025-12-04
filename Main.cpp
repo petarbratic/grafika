@@ -9,7 +9,6 @@ using namespace irrklang;
 #include <vector>
 #include <cmath>
 
-
 const double FRAME_TIME = 1.0 / 75.0;
 static double previousTime = glfwGetTime();
 
@@ -70,7 +69,6 @@ int endProgram(std::string message) {
 
 void keyCallback(GLFWwindow* window, int key, int scancode, int action, int mods)
 {
-
     if (key == GLFW_KEY_ESCAPE && action == GLFW_PRESS) {
         glfwSetWindowShouldClose(window, true);
     }
@@ -154,17 +152,20 @@ int main()
     glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
     glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-    // Prozor 900x900 (za sad nije full screen)
-    GLFWwindow* window = glfwCreateWindow(900, 900, "Vezba 2", NULL, NULL);
+    // Klasičan prozor 900x900
+    GLFWwindow* window = glfwCreateWindow(900, 900, "Harmonika", NULL, NULL);
     if (window == NULL) return endProgram("Prozor nije uspeo da se kreira.");
     glfwMakeContextCurrent(window);
 
     glfwSetKeyCallback(window, keyCallback);
 
+    // Sakrij sistemski kursor – koristimo naš teksturisani
+    glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_HIDDEN);
+
     // Inicijalizacija GLEW
     if (glewInit() != GLEW_OK) return endProgram("GLEW nije uspeo da se inicijalizuje.");
 
-    // Blending za providne teksture (ime.png)
+    // Blending za providne teksture (ime.png, cursor.png)
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
@@ -358,7 +359,6 @@ int main()
          0.95f, -0.80f,    1.0f, 0.0f   // gore desno
     };
 
-
     unsigned int VAOime, VBOime;
     glGenVertexArrays(1, &VAOime);
     glGenBuffers(1, &VBOime);
@@ -375,16 +375,39 @@ int main()
     glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
     glEnableVertexAttribArray(1);
 
+    // ----- KURSOR (tekstura cursor.png) -----
+    float cursorVertices[] = {
+        // inicijalno oko (0,0), kasnije menjamo u petlji
+        -0.05f,  0.05f,   0.0f, 0.0f,  // gore levo
+        -0.05f, -0.05f,   0.0f, 1.0f,  // dole levo
+         0.05f, -0.05f,   1.0f, 1.0f,  // dole desno
+         0.05f,  0.05f,   1.0f, 0.0f   // gore desno
+    };
+
+    unsigned int VAOcursor, VBOcursor;
+    glGenVertexArrays(1, &VAOcursor);
+    glGenBuffers(1, &VBOcursor);
+
+    glBindVertexArray(VAOcursor);
+    glBindBuffer(GL_ARRAY_BUFFER, VBOcursor);
+    glBufferData(GL_ARRAY_BUFFER, sizeof(cursorVertices), cursorVertices, GL_STATIC_DRAW);
+
+    glVertexAttribPointer(0, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)0);
+    glEnableVertexAttribArray(0);
+
+    glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 4 * sizeof(float), (void*)(2 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     // vrati se na VAO dirki
     glBindVertexArray(VAO);
 
-    // Učitavanje teksture sa imenom
+    // Učitavanje tekstura
     unsigned int imeTex = loadTexture("media/ime.png");
+    unsigned int cursorTex = loadTexture("media/cursor.png");
 
     // ----------------- MAIN LOOP -----------------
     while (!glfwWindowShouldClose(window))
     {
-
         double currentTime = glfwGetTime();
         double delta = currentTime - previousTime;
 
@@ -479,6 +502,39 @@ int main()
         glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
 
         glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+        // --- KURSOR (tekstura cursor.png) ---
+        double mx, my;
+        glfwGetCursorPos(window, &mx, &my);
+
+        int winW, winH;
+        glfwGetWindowSize(window, &winW, &winH);
+
+        float ndcX = 2.0f * static_cast<float>(mx) / static_cast<float>(winW) - 1.0f;
+        float ndcY = 1.0f - 2.0f * static_cast<float>(my) / static_cast<float>(winH);
+
+        float hw = 0.05f;  // pola širine kursora
+        float hh = 0.05f;  // pola visine kursora
+
+        float cursorVerticesUpdated[] = {
+            ndcX - hw, ndcY + hh, 0.0f, 0.0f,  // gore levo
+            ndcX - hw, ndcY - hh, 0.0f, 1.0f,  // dole levo
+            ndcX + hw, ndcY - hh, 1.0f, 1.0f,  // dole desno
+            ndcX + hw, ndcY + hh, 1.0f, 0.0f   // gore desno
+        };
+
+        glBindVertexArray(VAOcursor);
+        glBindBuffer(GL_ARRAY_BUFFER, VBOcursor);
+        glBufferSubData(GL_ARRAY_BUFFER, 0, sizeof(cursorVerticesUpdated), cursorVerticesUpdated);
+
+        glUseProgram(rectShader);
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D, cursorTex);
+        glUniform1i(glGetUniformLocation(rectShader, "uTex"), 0);
+
+        glDrawArrays(GL_TRIANGLE_FAN, 0, 4);
+
+        // ------------------------------------
 
         glfwSwapBuffers(window);
         glfwPollEvents();
